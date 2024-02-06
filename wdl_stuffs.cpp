@@ -81,6 +81,18 @@ void convert_data() {
     auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - beginTime).count();
     std::cout << "File loaded in " << elapsedTime << " ms, total of " << lineCount << " lines" << std::endl;
     beginTime = std::chrono::steady_clock::now();
+    struct
+    {
+        bool operator()(Case a, Case b) const {
+            if (a.moveCount < b.moveCount)
+                return true;
+            if (a.moveCount > b.moveCount)
+                return false;
+            // a.first == b.first, compare second
+            return a.score < b.score;
+         }
+    }
+    customLessThan;
     // sort them using the custom comparison above
     // The custom comparison above makes it so that they are sorted first by the move number, then by the score. this makes it easier to loop through later.
     std::sort(cases.begin(), cases.end(), customLessThan);
@@ -158,7 +170,7 @@ void output_params() {
 }
 
 int main() {
-    std::cout << "where is the pgn file?" << std::endl;
+    std::cout << "where is the file?" << std::endl;
     std::cin >> pgnDir;
     convert_data();
     train_stuff();
