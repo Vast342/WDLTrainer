@@ -145,16 +145,46 @@ double calculate_error() {
     return totalError / dataPoints;
 }
 
+double dp_over_dp_sub_i(int i, DataPoint point) {
+    double k = double(point.moveNumber) / 32;
+    //std::cout << "K = " << k << std::endl;
+    if(i <= 3) {
+        return (-1.0 * pow(calculate_winpercent(point.score, point.moveNumber), 2)) * exp(get_logistic_a(point.moveNumber) - point.score) * pow(k, (3 - i));
+    } else {
+        return (-1.0 * pow(calculate_winpercent(point.score, point.moveNumber), 2)) * pow(k, (7 - i));
+    }
+}
+
+double calculateParamGradient(int i, DataPoint point) {
+    return 2 * (calculate_winpercent(point.score, point.winRate) - point.winRate) * dp_over_dp_sub_i(i, point);
+}
+
+void runOneIteration() {
+    double dataPoints = 0;
+    double totalError = 0;
+    std::array<double, 8> gradient;
+    for(DataPoint point : win_rate_data) {
+        for(int i = 0; i < 8; i++) {
+            gradient[i] += calculateParamGradient(i, point);
+        }
+        totalError += pow((point.winRate - calculate_winpercent(point.score, point.moveNumber)), 2);
+        dataPoints++;
+    }
+    std::cout << "gradient: ";
+    for(int i = 0; i < 8; i++) {
+        gradient[i] /= dataPoints;
+        std::cout << gradient[i] << ", ";
+    }
+    std::cout << std::endl;
+}
+
 void train_stuff() {
     std::cout << "initial error: " << calculate_error() << std::endl;
     std::cout << "how many iterations would you like?" << std::endl;
     int iterations;
     std::cin >> iterations;
     for(int i = 0; i < iterations; i++) {
-        // stuff to do each iteration
-        // calculate gradient
-        // adjust accordingly
-        // test error again.
+        runOneIteration();
     }
     std::cout << "this is totally me training stuff" << std::endl;
     std::cout << "final error: " << calculate_error() << std::endl;
