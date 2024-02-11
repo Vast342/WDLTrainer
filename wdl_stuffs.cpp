@@ -34,18 +34,18 @@ std::vector<DataPoint> win_rate_data;
 std::array<double, 8> params = {-1.719, 12.448, -12.855, 331.883, -3.001, 22.505, -51.253, 93.209};
 
 // function to get horizontal shift parameter
-int get_logistic_a(int move_count) {
+double get_logistic_a(int move_count) {
     return ((params[0] * move_count / 32 + params[1]) * move_count / 32 + params[2]) * move_count / 32 + params[3];
 }
 
 // function to get curve aggressiveness parameter
-int get_logistic_b(int move_count) {
+double get_logistic_b(int move_count) {
     return ((params[4] * move_count / 32 + params[5]) * move_count / 32 + params[6]) * move_count / 32 + params[7];
 }
 
 // calculates the win percentage based on the above parameters (we love logistdic curves in this household)
 double calculate_winpercent(int score, int move_count) {
-    return 1 / (1 + exp(-(score - get_logistic_a(move_count))) + get_logistic_b(move_count));
+    return 1 / (1 + exp(-(score - get_logistic_a(move_count))) / get_logistic_b(move_count));
 }
 
 // calculates the ratio of wins and draws and losses
@@ -145,51 +145,6 @@ double calculate_error() {
     return totalError / dataPoints;
 }
 
-double dp_over_dp_sub_i(int i, DataPoint point) {
-    double k = double(point.moveNumber) / 32;
-    //std::cout << "K = " << k << std::endl;
-    if(i <= 3) {
-        return (-1.0 * pow(calculate_winpercent(point.score, point.moveNumber), 2)) * exp(get_logistic_a(point.moveNumber) - point.score) * pow(k, (3 - i));
-    } else {
-        return (-1.0 * pow(calculate_winpercent(point.score, point.moveNumber), 2)) * pow(k, (7 - i));
-    }
-}
-
-double calculateParamGradient(int i, DataPoint point) {
-    return 2 * (calculate_winpercent(point.score, point.winRate) - point.winRate) * dp_over_dp_sub_i(i, point);
-}
-
-void runOneIteration() {
-    double dataPoints = 0;
-    double totalError = 0;
-    std::array<double, 8> gradient;
-    for(DataPoint point : win_rate_data) {
-        for(int i = 0; i < 8; i++) {
-            gradient[i] += calculateParamGradient(i, point);
-        }
-        totalError += pow((point.winRate - calculate_winpercent(point.score, point.moveNumber)), 2);
-        dataPoints++;
-    }
-    std::cout << "gradient: ";
-    for(int i = 0; i < 8; i++) {
-        gradient[i] /= dataPoints;
-        std::cout << gradient[i] << ", ";
-    }
-    std::cout << std::endl;
-}
-
-void train_stuff() {
-    std::cout << "initial error: " << calculate_error() << std::endl;
-    std::cout << "how many iterations would you like?" << std::endl;
-    int iterations;
-    std::cin >> iterations;
-    for(int i = 0; i < iterations; i++) {
-        runOneIteration();
-    }
-    std::cout << "this is totally me training stuff" << std::endl;
-    std::cout << "final error: " << calculate_error() << std::endl;
-}
-
 void output_params() {
     std::cout << "Current parameter state:" << std::endl;
     std::cout << "std::array<double, 8> wdlParams = {";
@@ -197,6 +152,40 @@ void output_params() {
         std::cout << param << ", ";
     }
     std::cout << "};" << std::endl;
+}
+
+void runOneIteration(double lr) {
+    double startingError = calculate_error();
+    double bestError = startingError;
+    for(int i = 0; i < 8; i++) {
+        params[i] -= lr;
+        double currentError = calculate_error();
+        if(currentError < startingError) {
+            bestError = currentError;
+            continue;
+        }
+        params[i] += 2 * lr;
+        currentError = calculate_error();
+        if(currentError < startingError) {
+            bestError = currentError;
+            continue;
+        }
+        params[i] -= lr;
+    }
+}
+
+void train_stuff() {
+    std::cout << "initial error: " << calculate_error() << std::endl;
+    std::cout << "how many iterations would you like?" << std::endl;
+    int iterations;
+    std::cin >> iterations;
+    for(double i = 1; i <= iterations; i++) {
+        std::cout << "iteration " << i << " done. current error: " << calculate_error() << std::endl;
+        //output_params();
+        runOneIteration(200/(10*i));
+    }
+    std::cout << "this is totally me training stuff" << std::endl;
+    std::cout << "final error: " << calculate_error() << std::endl;
 }
 
 int main() {
