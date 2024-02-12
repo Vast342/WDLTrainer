@@ -177,14 +177,14 @@ void runOneIteration(double lr) {
 void train_stuff() {
     std::cout << "initial error: " << calculate_error() << std::endl;
     std::cout << "how many iterations would you like?" << std::endl;
-    int iterations;
+    double iterations;
     std::cin >> iterations;
     for(double i = 1; i <= iterations; i++) {
-        std::cout << "iteration " << i << " done. current error: " << calculate_error() << std::endl;
-        //output_params();
-        runOneIteration(200/(10*i));
+        runOneIteration(200/(i / 4));
+        if((int(iterations) % 10) == 0) { 
+            std::cout << "iteration " << i << " done. current error: " << calculate_error() << std::endl;
+        }
     }
-    std::cout << "this is totally me training stuff" << std::endl;
     std::cout << "final error: " << calculate_error() << std::endl;
 }
 
